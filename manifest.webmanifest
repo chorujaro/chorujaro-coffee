@@ -1,0 +1,19 @@
+{
+  "name": "CHORUJARO COFFEE ROAST MANAGER",
+  "short_name": "焙煎管理",
+  "description": "CHORUJARO COFFEE 専用の焙煎記録・分析アプリ",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f2eb",
+  "theme_color": "#f5f2eb",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
