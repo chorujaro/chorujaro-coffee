@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f5f2eb">
+  <meta name="description" content="CHORUJARO COFFEE 専用の焙煎記録・分析アプリ">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <title>CHORUJARO ROAST MANAGER</title>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark">C</div>
+    <div class="brand-copy"><strong>CHORUJARO COFFEE</strong><span>ROAST MANAGER</span></div>
+    <span class="offline-indicator" id="connectionStatus">● オフライン対応</span>
+  </header>
+
+  <main class="app-shell">
+    <section class="page active" id="page-roast">
+      <div class="page-heading">
+        <div><p class="eyebrow">LIVE ROASTING</p><h1>焙煎中</h1></div>
+        <span class="version">v1.0.0</span>
+      </div>
+
+      <div class="panel chart-panel">
+        <div class="panel-heading">
+          <div><h2>焙煎カーブ</h2><p class="muted" id="chartSubtitle">マスターと今回の焙煎を比較</p></div>
+          <button class="icon-button" id="clearPointsBtn" title="今回の温度記録を消去" aria-label="温度記録を消去">↺</button>
+        </div>
+        <div class="chart-legend">
+          <span><i class="legend-dot master"></i>マスター</span>
+          <span><i class="legend-dot trace"></i>今回の焙煎</span>
+          <span><i class="legend-dash"></i>イベント</span>
+        </div>
+        <div class="chart-wrap"><canvas id="roastChart" aria-label="焙煎温度グラフ"></canvas></div>
+        <div class="chart-axis-note"><span>温度 °C</span><span>経過時間</span></div>
+      </div>
+
+      <div class="timer-panel panel">
+        <div class="timer-display" id="timerDisplay">00:00</div>
+        <div class="timer-actions">
+          <button class="button primary" id="startPauseBtn">スタート</button>
+          <button class="button secondary" id="resetTimerBtn">リセット</button>
+        </div>
+      </div>
+
+      <div class="panel roast-input-panel">
+        <div class="section-title"><h2>今回の焙煎</h2><span class="required-note">記録前に豆を選択</span></div>
+        <div class="form-grid">
+          <label class="field full">使用する豆
+            <select id="roastBeanSelect"><option value="">豆を選択してください</option></select>
+          </label>
+          <label class="field">投入量 (g)<input id="roastWeight" type="number" inputmode="decimal" min="0" placeholder="例：200"></label>
+          <label class="field">焙煎度
+            <select id="roastLevel"><option value="">未選択</option><option>浅煎り</option><option>中浅煎り</option><option>中煎り</option><option>中深煎り</option><option>深煎り</option></select>
+          </label>
+        </div>
+        <div class="temperature-entry">
+          <label class="field temp-field">現在温度 <span class="unit">°C</span>
+            <input id="currentTemp" type="number" inputmode="decimal" step="0.1" placeholder="温度を入力">
+          </label>
+          <button class="button record-button" id="recordTempBtn">＋ 温度を記録</button>
+        </div>
+        <div class="event-buttons">
+          <button class="event-button first" id="firstCrackBtn"><span>1ハゼ</span><small>時刻を記録</small></button>
+          <button class="event-button second" id="secondCrackBtn"><span>2ハゼ</span><small>時刻を記録</small></button>
+          <button class="event-button drop" id="dropBtn"><span>煎り止め</span><small>時刻を記録</small></button>
+        </div>
+        <div class="event-log" id="eventLog"><span class="muted">イベントはまだ記録されていません</span></div>
+        <div class="field"><label for="roastMemo">焙煎中メモ</label><textarea id="roastMemo" rows="2" placeholder="火力、排気、気づいたことなど"></textarea></div>
+        <button class="button save-button" id="saveRoastBtn">焙煎記録を保存</button>
+      </div>
+    </section>
+
+    <section class="page" id="page-beans">
+      <div class="page-heading"><div><p class="eyebrow">BEAN LIBRARY</p><h1>豆マスター</h1></div></div>
+      <div class="panel">
+        <h2 id="beanFormTitle">豆を登録</h2>
+        <form id="beanForm">
+          <input type="hidden" id="beanId">
+          <div class="form-grid">
+            <label class="field full">豆の名前<input id="beanName" required placeholder="例：エチオピア イルガチェフェ"></label>
+            <label class="field">産地<input id="beanOrigin" placeholder="国・地域"></label>
+            <label class="field">精製方法<input id="beanProcess" placeholder="ウォッシュドなど"></label>
+            <label class="field full">品種<input id="beanVariety" placeholder="品種"></label>
+            <label class="field full">メモ<textarea id="beanMemo" rows="2" placeholder="標高、購入先など"></textarea></label>
+          </div>
+          <div class="master-editor">
+            <h3>マスター焙煎カーブ</h3>
+            <p class="muted small">時間（秒）と温度（°C）を入力。複数行追加できます。</p>
+            <div id="masterPoints"></div>
+            <button type="button" class="button secondary small-button" id="addMasterPointBtn">＋ カーブの点を追加</button>
+          </div>
+          <div class="form-actions"><button type="submit" class="button primary">豆を保存</button><button type="button" class="button secondary" id="cancelBeanEditBtn">クリア</button></div>
+        </form>
+      </div>
+      <div class="list-heading"><h2>登録済みの豆</h2><span id="beanCount" class="muted small">0件</span></div>
+      <div id="beanList" class="stack-list"></div>
+    </section>
+
+    <section class="page" id="page-history">
+      <div class="page-heading"><div><p class="eyebrow">ROAST HISTORY</p><h1>焙煎履歴</h1></div></div>
+      <div class="panel compact-panel">
+        <label class="field">豆で絞り込み<select id="historyBeanFilter"><option value="">すべての豆</option></select></label>
+      </div>
+      <div id="historyList" class="stack-list"></div>
+    </section>
+
+    <section class="page" id="page-settings">
+      <div class="page-heading"><div><p class="eyebrow">DATA & SETTINGS</p><h1>設定・バックアップ</h1></div></div>
+      <div class="panel">
+        <h2>データのバックアップ</h2>
+        <p class="muted">豆マスター・焙煎記録をJSONファイルとして保存できます。機種変更やブラウザデータ消去の前に、定期的に書き出してください。</p>
+        <button class="button primary full-button" id="exportBtn">JSONバックアップを書き出す</button>
+        <label class="button secondary full-button import-label">JSONバックアップを復元<input type="file" id="importFile" accept=".json,application/json" hidden></label>
+        <p class="small muted" id="backupStatus" aria-live="polite"></p>
+      </div>
+      <div class="panel">
+        <h2>アプリについて</h2>
+        <div class="setting-row"><span>アプリ名</span><strong>CHORUJARO ROAST MANAGER</strong></div>
+        <div class="setting-row"><span>バージョン</span><strong>1.0.0</strong></div>
+        <div class="setting-row"><span>保存先</span><strong>この端末のブラウザ内</strong></div>
+        <div class="setting-row"><span>通信</span><strong>焙煎データは外部送信しません</strong></div>
+        <p class="small muted">※ブラウザのサイトデータ削除や端末故障に備え、JSONバックアップを保管してください。</p>
+      </div>
+      <div class="panel">
+        <h2>インストール</h2>
+        <p class="muted">対応ブラウザでアプリを開き、ブラウザメニューの「ホーム画面に追加」または「アプリをインストール」を選択してください。インストール後はオフラインでも主要機能を利用できます。</p>
+        <button class="button secondary full-button" id="installBtn" hidden>ホーム画面にインストール</button>
+        <p class="small muted" id="installHelp">AndroidではChromeで公開URLを開くとインストールできます。</p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="メインメニュー">
+    <button class="nav-item active" data-page="roast"><span>◉</span><small>焙煎</small></button>
+    <button class="nav-item" data-page="beans"><span>☕</span><small>豆マスター</small></button>
+    <button class="nav-item" data-page="history"><span>▤</span><small>履歴</small></button>
+    <button class="nav-item" data-page="settings"><span>⚙</span><small>設定</small></button>
+  </nav>
+
+  <dialog id="recordDialog" class="modal">
+    <form method="dialog" class="modal-content">
+      <button class="modal-close" aria-label="閉じる">×</button>
+      <p class="eyebrow">ROAST DETAIL</p><h2 id="detailTitle">焙煎記録</h2>
+      <div id="recordDetail"></div>
+      <button class="button secondary full-button" value="close">閉じる</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js"></script>
+</body>
+</html>
