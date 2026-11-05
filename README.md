@@ -1,4 +1,4 @@
-# CHORUJARO COFFEE ROAST MANAGER v1.0.0
+# CHORUJARO COFFEE ROAST MANAGER v1.1.0
 
 CHORUJARO COFFEE専用の焙煎記録PWAです。
 
@@ -39,4 +39,4 @@ PWAとして利用するにはHTTPSで配信してください。ZIPを展開し
 - 初回公開前に実機Androidで、画面ロック・アプリ切替・長時間焙煎・バックアップ復元をテストしてください。
 
 ## バージョン
-v1.0.0 — 初期版
+v1.1.0 — 温度テンキー入力、ワンタップ温度登録、1ハゼ・2ハゼの温度付きイベント記録とグラフ上のポイント表示を追加

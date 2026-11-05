@@ -21,7 +21,7 @@
     <section class="page active" id="page-roast">
       <div class="page-heading">
         <div><p class="eyebrow">LIVE ROASTING</p><h1>焙煎中</h1></div>
-        <span class="version">v1.0.0</span>
+        <span class="version">v1.1.0</span>
       </div>
 
       <div class="panel chart-panel">
@@ -44,6 +44,24 @@
           <button class="button primary" id="startPauseBtn">スタート</button>
           <button class="button secondary" id="resetTimerBtn">リセット</button>
         </div>
+        <div class="quick-temperature">
+          <div class="quick-temp-heading"><strong>温度を入力</strong><span>数字をタップ</span></div>
+          <div class="temp-display"><span id="currentTempDisplay">---</span><small>°C</small></div>
+          <input id="currentTemp" type="hidden" value="">
+          <div class="number-pad" id="temperatureKeypad" aria-label="温度入力テンキー">
+            <button type="button" data-digit="1">1</button><button type="button" data-digit="2">2</button><button type="button" data-digit="3">3</button>
+            <button type="button" data-digit="4">4</button><button type="button" data-digit="5">5</button><button type="button" data-digit="6">6</button>
+            <button type="button" data-digit="7">7</button><button type="button" data-digit="8">8</button><button type="button" data-digit="9">9</button>
+            <button type="button" class="key-clear" data-key="clear">全消去</button><button type="button" data-digit="0">0</button><button type="button" class="key-delete" data-key="delete" aria-label="1文字削除">⌫</button>
+          </div>
+          <button class="button record-button quick-record" id="recordTempBtn">＋ この温度を登録</button>
+        </div>
+        <div class="event-buttons quick-events">
+          <button class="event-button first" id="firstCrackBtn"><span>1ハゼ</span><small>時刻・温度を記録</small></button>
+          <button class="event-button second" id="secondCrackBtn"><span>2ハゼ</span><small>時刻・温度を記録</small></button>
+          <button class="event-button drop" id="dropBtn"><span>煎り止め</span><small>時刻を記録</small></button>
+        </div>
+        <div class="event-log" id="eventLog"><span class="muted">イベントはまだ記録されていません</span></div>
       </div>
 
       <div class="panel roast-input-panel">
@@ -57,18 +75,6 @@
             <select id="roastLevel"><option value="">未選択</option><option>浅煎り</option><option>中浅煎り</option><option>中煎り</option><option>中深煎り</option><option>深煎り</option></select>
           </label>
         </div>
-        <div class="temperature-entry">
-          <label class="field temp-field">現在温度 <span class="unit">°C</span>
-            <input id="currentTemp" type="number" inputmode="decimal" step="0.1" placeholder="温度を入力">
-          </label>
-          <button class="button record-button" id="recordTempBtn">＋ 温度を記録</button>
-        </div>
-        <div class="event-buttons">
-          <button class="event-button first" id="firstCrackBtn"><span>1ハゼ</span><small>時刻を記録</small></button>
-          <button class="event-button second" id="secondCrackBtn"><span>2ハゼ</span><small>時刻を記録</small></button>
-          <button class="event-button drop" id="dropBtn"><span>煎り止め</span><small>時刻を記録</small></button>
-        </div>
-        <div class="event-log" id="eventLog"><span class="muted">イベントはまだ記録されていません</span></div>
         <div class="field"><label for="roastMemo">焙煎中メモ</label><textarea id="roastMemo" rows="2" placeholder="火力、排気、気づいたことなど"></textarea></div>
         <button class="button save-button" id="saveRoastBtn">焙煎記録を保存</button>
       </div>
@@ -120,7 +126,7 @@
       <div class="panel">
         <h2>アプリについて</h2>
         <div class="setting-row"><span>アプリ名</span><strong>CHORUJARO ROAST MANAGER</strong></div>
-        <div class="setting-row"><span>バージョン</span><strong>1.0.0</strong></div>
+        <div class="setting-row"><span>バージョン</span><strong>1.1.0</strong></div>
         <div class="setting-row"><span>保存先</span><strong>この端末のブラウザ内</strong></div>
         <div class="setting-row"><span>通信</span><strong>焙煎データは外部送信しません</strong></div>
         <p class="small muted">※ブラウザのサイトデータ削除や端末故障に備え、JSONバックアップを保管してください。</p>

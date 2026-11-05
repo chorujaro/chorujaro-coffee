@@ -58,7 +58,18 @@ function drawChart() {
   for(let t=0;t<=maxX;t+=Math.max(60,Math.ceil(maxX/5/60)*60)){const xx=x(t);ctx.strokeStyle="#f0eee8";ctx.beginPath();ctx.moveTo(xx,pad.t);ctx.lineTo(xx,pad.t+plotH);ctx.stroke();ctx.textAlign="center";ctx.textBaseline="top";ctx.fillStyle="#96978f";ctx.fillText(fmtTime(t),xx,h-18);}
   function line(points,color,width){if(!points.length)return;ctx.beginPath();points.forEach((p,i)=>{const xx=x(Number(p.t)||0),yy=y(Number(p.temp)||0);if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);});ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineJoin="round";ctx.lineCap="round";ctx.stroke();points.forEach(p=>{ctx.beginPath();ctx.arc(x(Number(p.t)||0),y(Number(p.temp)||0),2.7,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();});}
   line(master,"#6386a7",2.5); line(state.points,"#d8874e",2.8);
-  state.events.forEach(ev=>{const xx=x(ev.t);ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle=ev.type==="1ハゼ"?"#b9874e":ev.type==="2ハゼ"?"#8f7771":"#596b55";ctx.beginPath();ctx.moveTo(xx,pad.t);ctx.lineTo(xx,pad.t+plotH);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=ctx.strokeStyle;ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText(ev.type,Math.min(xx+3,w-48),pad.t+3);ctx.restore();});
+  state.events.forEach(ev=>{
+    const xx=x(ev.t), color=ev.type==="1ハゼ"?"#0d9488":ev.type==="2ハゼ"?"#8b5cf6":"#596b55";
+    ctx.save();
+    if(ev.type==="煎り止め"){ctx.setLineDash([4,4]);ctx.strokeStyle=color;ctx.beginPath();ctx.moveTo(xx,pad.t);ctx.lineTo(xx,pad.t+plotH);ctx.stroke();}
+    let eventTemp=Number(ev.temp);
+    if(!Number.isFinite(eventTemp)){const prior=state.points.filter(p=>p.t<=ev.t).sort((a,b)=>b.t-a.t)[0];if(prior)eventTemp=Number(prior.temp);}
+    if(Number.isFinite(eventTemp)){
+      const yy=y(eventTemp);ctx.beginPath();ctx.arc(xx,yy,6,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.lineWidth=2;ctx.strokeStyle="#fffefa";ctx.stroke();
+      ctx.font="bold 10px sans-serif";ctx.textAlign="left";ctx.textBaseline="bottom";ctx.fillStyle=color;ctx.fillText(ev.type,Math.min(xx+7,w-48),Math.max(pad.t+12,yy-7));
+    }else{ctx.fillStyle=color;ctx.beginPath();ctx.arc(xx,pad.t+8,4,0,Math.PI*2);ctx.fill();ctx.font="10px sans-serif";ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText(ev.type,Math.min(xx+5,w-48),pad.t+12);}
+    ctx.restore();
+  });
   if(!master.length && !state.points.length){ctx.fillStyle="#a3a39b";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="12px sans-serif";ctx.fillText("温度を記録するとカーブが表示されます",w/2,h/2);}
   $("chartSubtitle").textContent=bean ? `${bean.name}｜青：マスター / 橙：今回` : "豆を選択するとマスターカーブを表示します";
 }
@@ -91,17 +102,32 @@ function saveBean(e) {
   if(id){const i=state.beans.findIndex(b=>b.id===id);if(i>=0)state.beans[i]=bean;}else state.beans.push(bean);
   persist();resetBeanForm();renderBeans();toast("豆マスターを保存しました");
 }
+function updateTemperatureDisplay() {
+  const value=$("currentTemp").value;
+  $("currentTempDisplay").textContent=value||"---";
+}
+function pressTemperatureKey(key) {
+  let value=$("currentTemp").value;
+  if(key==="clear")value="";
+  else if(key==="delete")value=value.slice(0,-1);
+  else if(/^\d$/.test(key)){if(value.length>=3){toast("温度は3桁まで入力できます");return;}value+=key;}
+  $("currentTemp").value=value;updateTemperatureDisplay();
+}
 function recordPoint() {
-  const raw=$("currentTemp").value;if(raw===""){toast("現在温度を入力してください");return;}
-  const temp=Number(raw);if(!Number.isFinite(temp)||temp<0||temp>400){toast("温度を確認してください");return;}
-  state.points.push({t:elapsed(),temp});state.points.sort((a,b)=>a.t-b.t);persist();$("currentTemp").value="";drawChart();toast(`${fmtTime(elapsed())} / ${temp}°C を記録しました`);
+  const raw=$("currentTemp").value;if(raw===""){toast("数字ボタンで温度を入力してください");return;}
+  const temp=Number(raw);if(!Number.isInteger(temp)||temp<0||temp>400){toast("温度は0〜400℃の整数で入力してください");return;}
+  const t=elapsed();state.points.push({t,temp});state.points.sort((a,b)=>a.t-b.t);persist();$("currentTemp").value="";updateTemperatureDisplay();drawChart();toast(`${fmtTime(t)} / ${temp}°C を記録しました`);
 }
 function addEvent(type) {
   const existing=state.events.find(e=>e.type===type);if(existing){toast(type+"はすでに記録されています");return;}
-  state.events.push({type,t:elapsed()});persist();renderEvents();drawChart();toast(`${type}を ${fmtTime(elapsed())} に記録しました`);
+  const t=elapsed();
+  const typed=$("currentTemp").value;
+  const prior=state.points.filter(p=>p.t<=t).sort((a,b)=>b.t-a.t)[0];
+  const temp=typed!==""?Number(typed):(prior?Number(prior.temp):null);
+  state.events.push({type,t,...(Number.isFinite(temp)?{temp}:{})});persist();renderEvents();drawChart();toast(`${type}を ${fmtTime(t)}${Number.isFinite(temp)?` / ${temp}°C`:""} に記録しました`);
 }
 function renderEvents() {
-  $("eventLog").innerHTML=state.events.length?state.events.map(e=>`<span class="event-chip">${esc(e.type)} ${fmtTime(e.t)}</span>`).join(""):'<span class="muted">イベントはまだ記録されていません</span>';
+  $("eventLog").innerHTML=state.events.length?state.events.map(e=>`<span class="event-chip">${esc(e.type)} ${fmtTime(e.t)}${Number.isFinite(Number(e.temp))?` / ${esc(e.temp)}℃`:""}</span>`).join(""):'<span class="muted">イベントはまだ記録されていません</span>';
 }
 function saveRoast() {
   const bean=selectedBean();if(!bean){toast("使用する豆を選択してください");return;}if(!state.points.length){toast("温度を1点以上記録してください");return;}
@@ -118,7 +144,7 @@ function showRoastDetail(id) {
   const r=state.roasts.find(x=>x.id===id);if(!r)return;
   $("detailTitle").textContent=r.beanName||"焙煎記録";
   const date=new Date(r.date).toLocaleString("ja-JP");
-  $("recordDetail").innerHTML=`<p class="muted small">${esc(date)}</p><div class="detail-grid"><div class="detail-cell"><small>投入量</small><strong>${r.weight?esc(r.weight)+" g":"未記録"}</strong></div><div class="detail-cell"><small>焙煎度</small><strong>${esc(r.level||"未選択")}</strong></div><div class="detail-cell"><small>焙煎時間</small><strong>${fmtTime(r.duration||0)}</strong></div><div class="detail-cell"><small>温度記録</small><strong>${(r.points||[]).length}点</strong></div></div><h3>イベント</h3><p>${(r.events||[]).map(e=>esc(e.type)+" "+fmtTime(e.t)).join(" / ")||"なし"}</p><h3>温度記録</h3><p>${(r.points||[]).map(p=>fmtTime(p.t)+"："+esc(p.temp)+"°C").join("、")||"なし"}</p><h3>メモ</h3><p>${esc(r.memo||"メモなし")}</p>`;
+  $("recordDetail").innerHTML=`<p class="muted small">${esc(date)}</p><div class="detail-grid"><div class="detail-cell"><small>投入量</small><strong>${r.weight?esc(r.weight)+" g":"未記録"}</strong></div><div class="detail-cell"><small>焙煎度</small><strong>${esc(r.level||"未選択")}</strong></div><div class="detail-cell"><small>焙煎時間</small><strong>${fmtTime(r.duration||0)}</strong></div><div class="detail-cell"><small>温度記録</small><strong>${(r.points||[]).length}点</strong></div></div><h3>イベント</h3><p>${(r.events||[]).map(e=>esc(e.type)+" "+fmtTime(e.t)+(Number.isFinite(Number(e.temp))?" / "+esc(e.temp)+"℃":"")).join(" / ")||"なし"}</p><h3>温度記録</h3><p>${(r.points||[]).map(p=>fmtTime(p.t)+"："+esc(p.temp)+"°C").join("、")||"なし"}</p><h3>メモ</h3><p>${esc(r.memo||"メモなし")}</p>`;
   $("recordDialog").showModal();
 }
 function registerRoastAsMaster(id) {
@@ -149,7 +175,9 @@ function switchPage(page) {
 function bindEvents() {
   document.querySelectorAll(".nav-item").forEach(b=>b.addEventListener("click",()=>switchPage(b.dataset.page)));
   $("startPauseBtn").addEventListener("click",startTimer);$("resetTimerBtn").addEventListener("click",()=>{if(confirm("タイマーをリセットしますか？"))resetTimer();});
-  $("recordTempBtn").addEventListener("click",recordPoint);$("firstCrackBtn").addEventListener("click",()=>addEvent("1ハゼ"));$("secondCrackBtn").addEventListener("click",()=>addEvent("2ハゼ"));$("dropBtn").addEventListener("click",()=>addEvent("煎り止め"));
+  $("recordTempBtn").addEventListener("click",recordPoint);
+  $("temperatureKeypad").addEventListener("click",e=>{const button=e.target.closest("button");if(!button)return;if(button.dataset.digit!==undefined)pressTemperatureKey(button.dataset.digit);else if(button.dataset.key)pressTemperatureKey(button.dataset.key);});
+  $("firstCrackBtn").addEventListener("click",()=>addEvent("1ハゼ"));$("secondCrackBtn").addEventListener("click",()=>addEvent("2ハゼ"));$("dropBtn").addEventListener("click",()=>addEvent("煎り止め"));
   $("saveRoastBtn").addEventListener("click",saveRoast);$("roastBeanSelect").addEventListener("change",drawChart);
   $("clearPointsBtn").addEventListener("click",()=>{if(confirm("今回入力した温度点とイベントを消去しますか？")){state.points=[];state.events=[];persist();renderEvents();drawChart();}});
   $("beanForm").addEventListener("submit",saveBean);$("addMasterPointBtn").addEventListener("click",()=>addMasterRow());$("cancelBeanEditBtn").addEventListener("click",resetBeanForm);
